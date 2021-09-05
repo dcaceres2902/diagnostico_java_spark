@@ -24,10 +24,21 @@ public class Transformer extends Writer {
 
         df = cleanData(df);
         df = exampleWindowFunction(df);
+        df = defineRule2(df);
+        df = defineRule3(df);
+        df = defineRule4(df);
+        df = filterCondition1(df);
+        df = filterCondition2(df);
+        //df = filterCondition3(df);
+        //df = filterCondition4(df);
         df = columnSelection(df);
+
+
+
 
         // for show 100 records after your transformations and show the Dataset schema
         df.show(100, false);
+
         df.printSchema();
 
         // Uncomment when you want write your final output
@@ -37,10 +48,21 @@ public class Transformer extends Writer {
     private Dataset<Row> columnSelection(Dataset<Row> df) {
         return df.select(
                 shortName.column(),
-                overall.column(),
+                longName.column(),
+                age.column(),
                 heightCm.column(),
+                weightKg.column(),
+                nationality.column(),
+                clubName.column(),
+                overall.column(),
+                potential.column(),
                 teamPosition.column(),
-                catHeightByPosition.column()
+                catHeightByPosition.column(),
+                ageRange.column(),
+                rankByNationalityPosition.column(),
+                potentialVsOverall.column()
+
+
         );
     }
 
@@ -96,7 +118,66 @@ public class Transformer extends Writer {
         return df;
     }
 
+    private Dataset<Row> defineRule2(Dataset<Row> df) {
+        Column rule = when(df.col("age").$less(23), "A")
+                .when(df.col("age").$less(27), "B")
+                .when(df.col("age").$less(32), "C")
+                .otherwise("D");
 
+        df = df.withColumn(ageRange.getName(), rule);
+
+        return df;
+    }
+
+    private Dataset<Row> defineRule3(Dataset<Row> df) {
+        WindowSpec w = Window
+                .partitionBy(nationality.column(), teamPosition.column())
+                .orderBy(overall.column().desc());
+
+        Column rank = row_number().over(w);
+
+        df = df.withColumn(rankByNationalityPosition.getName(), rank);
+
+        return df;
+    }
+
+
+    private Dataset<Row> defineRule4(Dataset<Row> df) {
+        Column rule = df.col("potential").$div(df.col("overall"));
+        df = df.withColumn(potentialVsOverall.getName(), rule);
+        return df;
+    }
+
+    private Dataset<Row> filterRankByNationalityLessThan3(Dataset<Row> df) {
+        df = df.filter(
+                rankByNationalityPosition.column().$less(3));
+        return df;
+    }
+
+    private Dataset<Row> filterCondition1(Dataset<Row> df) {
+        df = df.filter(
+                rankByNationalityPosition.column().$less(3));
+        return df;
+    }
+
+    private Dataset<Row> filterCondition2(Dataset<Row> df) {
+        df = df.filter(ageRange.column().equalTo("B")
+                .or(ageRange.column().equalTo("C"))
+                .and(potentialVsOverall.column().$greater(1.15)));
+        return df;
+    }
+
+    private Dataset<Row> filterCondition3(Dataset<Row> df) {
+        df = df.filter(ageRange.column().equalTo("A")
+                .and(potentialVsOverall.column().$greater(1.25)));
+        return df;
+    }
+
+    private Dataset<Row> filterCondition4(Dataset<Row> df) {
+        df = df.filter(ageRange.column().equalTo("D")
+                .and(rankByNationalityPosition.column().$less(5)));
+        return df;
+    }
 
 
 }
