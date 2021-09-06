@@ -27,10 +27,7 @@ public class Transformer extends Writer {
         df = defineRule2(df);
         df = defineRule3(df);
         df = defineRule4(df);
-        df = filterCondition1(df);
-        df = filterCondition2(df);
-        //df = filterCondition3(df);
-        //df = filterCondition4(df);
+        df = filterConditions(df);
         df = columnSelection(df);
 
 
@@ -148,12 +145,20 @@ public class Transformer extends Writer {
         return df;
     }
 
-    private Dataset<Row> filterRankByNationalityLessThan3(Dataset<Row> df) {
+    private Dataset<Row> filterConditions(Dataset<Row> df) {
         df = df.filter(
-                rankByNationalityPosition.column().$less(3));
+                        rankByNationalityPosition.column().$less(3)
+                        .or(ageRange.column().equalTo("B")
+                                .or(ageRange.column().equalTo("C"))
+                                .and(potentialVsOverall.column().$greater(1.15)))
+                        .or(ageRange.column().equalTo("A")
+                                .and(potentialVsOverall.column().$greater(1.25)))
+                        .or(ageRange.column().equalTo("D")
+                                .and(rankByNationalityPosition.column().$less(5)))
+        );
         return df;
     }
-
+/*
     private Dataset<Row> filterCondition1(Dataset<Row> df) {
         df = df.filter(
                 rankByNationalityPosition.column().$less(3));
@@ -178,6 +183,6 @@ public class Transformer extends Writer {
                 .and(rankByNationalityPosition.column().$less(5)));
         return df;
     }
-
+*/
 
 }
